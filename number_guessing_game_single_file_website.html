@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Number Guessing Game</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#60a5fa; --muted:#94a3b8; --glass: rgba(255,255,255,0.03);
+      --success:#16a34a; --danger:#ef4444;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background:linear-gradient(180deg,#071025 0%, #0b1220 100%); color:#e6eef8;
+      padding:32px;
+    }
+    .card{
+      width:100%; max-width:720px; background:linear-gradient(180deg,var(--card), rgba(11,18,32,0.9));
+      border-radius:16px; padding:28px; box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+    }
+    h1{margin:0 0 8px; font-size:28px}
+    p.lead{margin:0 0 18px; color:var(--muted)}
+
+    .controls{display:flex; gap:12px; align-items:center; margin-bottom:18px}
+    input[type=number]{
+      width:120px; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.06);
+      background:var(--glass); color:inherit; font-size:16px; outline:none;
+    }
+    button{padding:10px 14px; border-radius:10px; border:0; background:var(--accent); color:#032; font-weight:600; cursor:pointer}
+    button.secondary{background:transparent; border:1px solid rgba(255,255,255,0.05); color:var(--muted)}
+    .message{padding:12px 14px; border-radius:10px; margin-bottom:10px; background: rgba(255,255,255,0.02); color:var(--muted)}
+    .hint{font-weight:600}
+    .status{display:flex; gap:12px; align-items:center; margin-top:8px}
+    .badge{padding:6px 10px; border-radius:999px; background:rgba(255,255,255,0.03); font-weight:600}
+    .attempts{font-size:14px; color:var(--muted)}
+    .footer{margin-top:16px; font-size:13px; color:var(--muted)}
+    .result{padding:12px; border-radius:10px; margin-top:10px}
+    .result.win{background: rgba(22,163,74,0.12); color:var(--success);}
+    .result.lose{background: rgba(239,68,68,0.08); color:var(--danger);}
+    @media (max-width:520px){
+      .controls{flex-direction:column; align-items:stretch}
+      input[type=number]{width:100%}
+      button{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h1>Number Guessing Game</h1>
+    <p class="lead">Guess a number between 1 and 10. You have 3 attempts. Good luck! 🎯</p>
+
+    <div class="message" id="message">Ready to play — enter a number and hit <strong>Guess</strong> or press Enter.</div>
+
+    <div class="controls">
+      <label for="guess" class="sr-only">Your guess</label>
+      <input id="guess" type="number" min="1" max="10" placeholder="1 - 10" aria-label="Guess a number between 1 and 10">
+      <button id="guessBtn">Guess</button>
+      <button id="restartBtn" class="secondary">Restart</button>
+    </div>
+
+    <div class="status">
+      <div class="badge">Attempts left: <span id="attempts">3</span></div>
+      <div class="attempts">Tip: use keyboard Enter to submit.</div>
+    </div>
+
+    <div id="resultArea" aria-live="polite"></div>
+
+    <div class="footer">This is a browser version of your Python game. Numbers are chosen randomly each round.</div>
+  </div>
+
+  <script>
+    (function(){
+      const min = 1, max = 10
+      let x = randomInt(min, max)
+      let attempts = 3
+      const guessInput = document.getElementById('guess')
+      const guessBtn = document.getElementById('guessBtn')
+      const restartBtn = document.getElementById('restartBtn')
+      const msg = document.getElementById('message')
+      const attemptsEl = document.getElementById('attempts')
+      const resultArea = document.getElementById('resultArea')
+
+      function randomInt(a,b){ return Math.floor(Math.random()*(b-a+1)) + a }
+
+      function setMessage(text){
+        msg.innerHTML = text
+      }
+
+      function endGame(win){
+        guessInput.disabled = true
+        guessBtn.disabled = true
+        if(win){
+          resultArea.innerHTML = '<div class="result win">\u{1F389} <strong>Right!</strong> Congratulations — you have won.</div>'
+        } else {
+          resultArea.innerHTML = `<div class="result lose">\u{1F625} <strong>Out of attempts.</strong> The number was ${x}.</div>`
+        }
+      }
+
+      function makeGuess(){
+        const val = Number(guessInput.value)
+        if(!Number.isInteger(val) || val < min || val > max){
+          setMessage('<span class="hint">Please enter an integer between 1 and 10.</span>')
+          return
+        }
+
+        if(val === x){
+          setMessage('Right.')
+          endGame(true)
+          return
+        }
+
+        if(val > x){
+          setMessage('You chose a higher number.')
+        } else {
+          setMessage('You chose a lower number.')
+        }
+
+        attempts -= 1
+        attemptsEl.textContent = attempts
+
+        if(attempts > 0){
+          resultArea.innerHTML = `<div class="message">You have ${attempts} attempt(s) left.</div>`
+        } else {
+          endGame(false)
+        }
+      }
+
+      guessBtn.addEventListener('click', makeGuess)
+      guessInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') makeGuess() })
+
+      restartBtn.addEventListener('click', function(){
+        x = randomInt(min,max)
+        attempts = 3
+        guessInput.disabled = false
+        guessBtn.disabled = false
+        guessInput.value = ''
+        attemptsEl.textContent = attempts
+        resultArea.innerHTML = ''
+        setMessage('Ready to play — enter a number and hit <strong>Guess</strong> or press Enter.')
+        guessInput.focus()
+      })
+
+      guessInput.focus()
+    })()
+  </script>
+</body>
+</html>
+
+<!-- Deployment Guide for GitHub Pages:
+1. Create a new repository on GitHub (e.g., guessing-game).
+2. Add this file as `index.html` at the root of the repository.
+3. Commit and push your code.
+4. Go to the repository's Settings > Pages.
+5. Under "Source", select `main` branch and `/ (root)` folder.
+6. Save — your game will be live at https://<your-username>.github.io/guessing-game
+-->
